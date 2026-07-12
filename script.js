@@ -1,3 +1,14 @@
+// --- 1. PWA Service Worker Registration ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('PawIDE Service Worker registered.', reg);
+        }).catch(err => {
+            console.log('Service Worker registration failed:', err);
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
     const splashScreen = document.getElementById('splash-screen');
@@ -20,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State & Config ---
     const defaultCode = {
         html: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Paw IDE App</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="container">\n    <h1>Welcome to Paw IDE 🚀</h1>\n    <p>Edit HTML, CSS, and JS to see live updates.</p>\n    <button id="clickMe">Click Me</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
-        css: `body {\n  font-family: 'Inter', sans-serif;\n  background: #0a0a0f;\n  color: #fff;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.container {\n  text-align: center;\n  background: rgba(255,255,255,0.05);\n  padding: 2rem;\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n  box-shadow: 0 10px 30px rgba(0,240,255,0.1);\n}\n\nh1 {\n  color: #00f0ff;\n}\n\nbutton {\n  background: #7000ff;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: bold;\n  transition: 0.2s;\n}\n\nbutton:hover {\n  background: #8b33ff;\n}`,
+        css: `body {\n  font-family: 'Inter', sans-serif;\n  background: #1e1e1e;\n  color: #cccccc;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.container {\n  text-align: center;\n  background: rgba(255,255,255,0.05);\n  padding: 2rem;\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n  box-shadow: 0 10px 30px rgba(0,122,204,0.1);\n}\n\nh1 {\n  color: #007acc;\n}\n\nbutton {\n  background: #007acc;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: bold;\n  transition: 0.2s;\n}\n\nbutton:hover {\n  background: #0098ff;\n}`,
         js: `document.getElementById('clickMe').addEventListener('click', () => {\n  console.log('Button clicked!');\n  alert('Hello from Paw IDE!');\n});`
     };
 
@@ -44,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.has('share')) {
         try {
             const decoded = JSON.parse(decodeURIComponent(atob(urlParams.get('share'))));
-            files = { ...defaultCode, ...decoded }; // Merge just in case
-            window.history.replaceState({}, document.title, window.location.pathname); // Clean URL
+            files = { ...defaultCode, ...decoded };
+            window.history.replaceState({}, document.title, window.location.pathname);
             showNotification("Shared project loaded");
         } catch (e) {
             console.error("Failed to parse shared code", e);
@@ -74,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    // --- Monaco Editor Setup ---
+    // --- Monaco Editor Setup (VS Code Theme Fix) ---
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         models.html = monaco.editor.createModel(files.html, "html");
@@ -82,14 +93,17 @@ document.addEventListener('DOMContentLoaded', () => {
         models.js = monaco.editor.createModel(files.js, "javascript");
 
         const themeStr = document.documentElement.getAttribute('data-theme');
+        
+        // Exact VS Code Dark Theme Match
         monaco.editor.defineTheme('pawDark', {
             base: 'vs-dark',
             inherit: true,
-            rules: [{ background: '0a0a0f' }],
+            rules: [{ background: '1e1e1e' }],
             colors: {
-                'editor.background': '#0a0a0f',
-                'editor.lineHighlightBackground': '#1c1c24',
-                'editorLineNumber.foreground': '#4f4f66'
+                'editor.background': '#1e1e1e',
+                'editor.lineHighlightBackground': '#2a2d2e',
+                'editorLineNumber.foreground': '#858585',
+                'editorIndentGuide.background': '#404040'
             }
         });
 
@@ -105,7 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollBeyondLastLine: false,
             roundedSelection: true,
             cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: true
+            cursorSmoothCaretAnimation: true,
+            formatOnPaste: true
         });
 
         editorInstance.onDidChangeModelContent(() => {
@@ -253,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
     document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
     
-    // Listen for settings changes
     [sFontSize, sWordWrap, sMinimap, sAutoRun].forEach(el => {
         el.addEventListener('change', saveAndApplySettings);
     });
@@ -348,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Resizer Logic (Sidebar to Workspace)
+    // Resizer Logic
     const resizer1 = document.getElementById('resizer-1');
     const panelExplorer = document.querySelector('.panel-explorer');
     let isResizing1 = false;

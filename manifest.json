@@ -1,0 +1,22 @@
+{
+  "name": "PawIDE - Web Workspace",
+  "short_name": "PawIDE",
+  "description": "A futuristic, progressive web-based HTML/CSS/JS compiler.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#1e1e1e",
+  "theme_color": "#007acc",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
