@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/icon-192.png" alt="PawIDE Logo" width="100"/>
   <h1>PawIDE</h1>
-  <p><strong>A progressive, web-based HTML/CSS/JS compiler built by PawDevs.</strong></p>
+  <p><strong>A progressive, web-based HTML/CSS/JS compiler built by PAWJECTS.</strong></p>
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
   [![PWA Ready](https://img.shields.io/badge/PWA-Ready-success.svg)](#)
