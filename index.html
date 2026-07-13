@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <meta name="description" content="PawIDE - Professional Web Compiler">
-    <title>PawIDE - Code Anywhere</title>
+    <title>PawIDE - Professional Web Compiler</title>
     
-    <!-- PWA Requirements -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     
-    <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- Styles & Engine -->
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 </head>
@@ -25,24 +21,21 @@
     <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             <h1>PawIDE</h1>
         </div>
         <div class="splash-loader"></div>
     </div>
 
-    <!-- Notification Container -->
     <div id="notification-container"></div>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay hidden">
-        <div class="modal-box" id="settings-box">
+        <div class="modal-box">
             <div class="modal-header">
                 <h2>Workspace Settings</h2>
                 <button id="close-settings" class="icon-btn" title="Close Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -56,6 +49,7 @@
                         <option value="14" selected>14px</option>
                         <option value="16">16px</option>
                         <option value="18">18px</option>
+                        <option value="20">20px</option>
                     </select>
                 </div>
                 <div class="setting-row">
@@ -65,6 +59,16 @@
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="setting-wordwrap">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Minimap</span>
+                        <span class="setting-desc">Show code overview on the right</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-minimap" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -82,26 +86,68 @@
         </div>
     </div>
 
+    <!-- Command Palette -->
+    <div id="command-palette" class="modal-overlay hidden">
+        <div class="cmd-box">
+            <div class="cmd-input-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="cmd-input" placeholder="Type a command or search...">
+            </div>
+            <div class="cmd-list">
+                <div class="cmd-item" data-action="run">Run Project <span class="cmd-shortcut">Ctrl+Enter</span></div>
+                <div class="cmd-item" data-action="save">Save Workspace <span class="cmd-shortcut">Ctrl+S</span></div>
+                <div class="cmd-item" data-action="download">Download Files</div>
+                <div class="cmd-item" data-action="share">Share via Link</div>
+                <div class="cmd-item" data-action="settings">Open Settings</div>
+                <div class="cmd-item" data-action="theme">Toggle Theme</div>
+                <div class="cmd-item" data-action="clear">Clear Workspace</div>
+            </div>
+        </div>
+    </div>
+
     <!-- App Wrapper -->
     <div class="app-wrapper">
         
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="sidebar-top">
-                <button class="sidebar-btn active" title="Explorer">
+                <button class="sidebar-btn active" title="Explorer" data-panel="explorer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 </button>
             </div>
             <div class="sidebar-bottom">
+                <button class="sidebar-btn" id="theme-toggle" title="Toggle Theme">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
                 <button class="sidebar-btn" id="btn-settings" title="Settings">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
             </div>
         </nav>
 
+        <!-- Explorer Panel -->
+        <aside class="panel-explorer">
+            <div class="panel-header">
+                <span id="panel-title">EXPLORER</span>
+                <div class="traffic-lights"><span></span><span></span><span></span></div>
+            </div>
+            <div id="explorer-view" class="panel-content active">
+                <div class="folder-name">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    PROJECT_PAW
+                </div>
+                <ul class="file-list">
+                    <li class="file-item active" data-file="html"><svg class="file-icon html-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> index.html</li>
+                    <li class="file-item" data-file="css"><svg class="file-icon css-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> style.css</li>
+                    <li class="file-item" data-file="js"><svg class="file-icon js-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> script.js</li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="drag-resizer" id="resizer-1"></div>
+
         <!-- Main Workspace Area -->
         <main class="workspace">
-            <!-- Topbar -->
             <header class="topbar">
                 <div class="topbar-left">
                     <span class="branding-logo">
@@ -112,7 +158,6 @@
                 </div>
                 
                 <div class="topbar-right">
-                    <!-- Dynamic Install Button (Hidden by default until SW confirms capability) -->
                     <button class="btn btn-primary hidden" id="btn-install" title="Install App">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <span>Install</span>
@@ -132,7 +177,6 @@
             </header>
 
             <div class="split-view" id="main-split-view">
-                <!-- Editor Section -->
                 <div class="editor-section">
                     <div class="editor-tabs">
                         <div class="tab active" data-file="html"><span style="color:#e34f26">●</span> index.html</div>
@@ -144,7 +188,6 @@
 
                 <div class="drag-resizer core-resizer" id="resizer-2"></div>
 
-                <!-- Preview Section -->
                 <div class="preview-section">
                     <div class="preview-tabs">
                         <div class="tab active" data-view="preview">Preview</div>
@@ -158,6 +201,18 @@
                     </div>
                 </div>
             </div>
+            
+            <footer class="statusbar">
+                <div class="status-left">
+                    <div class="status-item" id="status-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> 0 Errors</div>
+                    <div class="status-item" id="status-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> 0 Warnings</div>
+                </div>
+                <div class="status-right">
+                    <div class="status-item" id="status-line">Ln 1, Col 1</div>
+                    <div class="status-item" id="status-lang">HTML</div>
+                    <div class="status-item">PawIDE v2.0</div>
+                </div>
+            </footer>
         </main>
     </div>
     
