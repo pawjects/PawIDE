@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <title>PawIDE - Professional Web Compiler</title>
+    <title>PawIDE - Code Anywhere</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
@@ -18,7 +18,6 @@
 </head>
 <body>
 
-    <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-logo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -27,10 +26,8 @@
         <div class="splash-loader"></div>
     </div>
 
-    <!-- Notification Container -->
     <div id="notification-container"></div>
 
-    <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="modal-header">
@@ -41,53 +38,28 @@
             </div>
             <div class="modal-body">
                 <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Font Size</span>
-                        <span class="setting-desc">Editor text size in pixels</span>
-                    </div>
+                    <div class="setting-info"><span class="setting-title">Font Size</span><span class="setting-desc">Editor text size in pixels</span></div>
                     <select id="setting-fontsize" class="setting-select">
-                        <option value="12">12px</option>
-                        <option value="14" selected>14px</option>
-                        <option value="16">16px</option>
-                        <option value="18">18px</option>
-                        <option value="20">20px</option>
+                        <option value="12">12px</option><option value="14" selected>14px</option>
+                        <option value="16">16px</option><option value="18">18px</option><option value="20">20px</option>
                     </select>
                 </div>
                 <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Word Wrap</span>
-                        <span class="setting-desc">Wrap long lines of code</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="setting-wordwrap">
-                        <span class="slider"></span>
-                    </label>
+                    <div class="setting-info"><span class="setting-title">Word Wrap</span><span class="setting-desc">Wrap long lines of code</span></div>
+                    <label class="toggle-switch"><input type="checkbox" id="setting-wordwrap"><span class="slider"></span></label>
                 </div>
                 <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Minimap</span>
-                        <span class="setting-desc">Show code overview on the right</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="setting-minimap" checked>
-                        <span class="slider"></span>
-                    </label>
+                    <div class="setting-info"><span class="setting-title">Minimap</span><span class="setting-desc">Show code overview on the right</span></div>
+                    <label class="toggle-switch"><input type="checkbox" id="setting-minimap" checked><span class="slider"></span></label>
                 </div>
                 <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Auto-Run Preview</span>
-                        <span class="setting-desc">Update preview while typing</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="setting-autorun" checked>
-                        <span class="slider"></span>
-                    </label>
+                    <div class="setting-info"><span class="setting-title">Auto-Run Preview</span><span class="setting-desc">Update preview while typing</span></div>
+                    <label class="toggle-switch"><input type="checkbox" id="setting-autorun" checked><span class="slider"></span></label>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Command Palette -->
     <div id="command-palette" class="modal-overlay hidden">
         <div class="cmd-box">
             <div class="cmd-input-wrapper">
@@ -106,10 +78,7 @@
         </div>
     </div>
 
-    <!-- App Wrapper -->
     <div class="app-wrapper">
-        
-        <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="sidebar-top">
                 <button class="sidebar-btn active" title="Explorer" data-panel="explorer">
@@ -121,22 +90,15 @@
                     <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </button>
                 <button class="sidebar-btn" id="btn-settings" title="Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
             </div>
         </nav>
 
-        <!-- Explorer Panel -->
         <aside class="panel-explorer">
-            <div class="panel-header">
-                <span id="panel-title">EXPLORER</span>
-                <div class="traffic-lights"><span></span><span></span><span></span></div>
-            </div>
+            <div class="panel-header"><span id="panel-title">EXPLORER</span><div class="traffic-lights"><span></span><span></span><span></span></div></div>
             <div id="explorer-view" class="panel-content active">
-                <div class="folder-name">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                    PROJECT_PAW
-                </div>
+                <div class="folder-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> PROJECT_PAW</div>
                 <ul class="file-list">
                     <li class="file-item active" data-file="html"><svg class="file-icon html-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> index.html</li>
                     <li class="file-item" data-file="css"><svg class="file-icon css-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> style.css</li>
@@ -147,24 +109,21 @@
 
         <div class="drag-resizer" id="resizer-1"></div>
 
-        <!-- Main Workspace Area -->
         <main class="workspace">
             <header class="topbar">
                 <div class="topbar-left">
-                    <span class="branding-logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        PawIDE
-                    </span>
+                    <span class="branding-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> PawIDE</span>
                     <div class="typing-indicator hidden" id="typing-indicator">Saving...</div>
                 </div>
                 
                 <div class="topbar-right">
-                    <button class="btn btn-primary hidden" id="btn-install" title="Install App">
+                    <!-- The PWA Install Button -->
+                    <button class="btn btn-primary hidden" id="btn-install" title="Install App to Device">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <span>Install</span>
                     </button>
                     
-                    <button class="btn btn-secondary" id="btn-toggle-preview" title="Toggle Code / Preview View">
+                    <button class="btn btn-secondary" id="btn-toggle-preview" title="Toggle Preview">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
                     <button class="btn btn-secondary" id="btn-download" title="Download Source">
@@ -211,7 +170,7 @@
                 <div class="status-right">
                     <div class="status-item" id="status-line">Ln 1, Col 1</div>
                     <div class="status-item" id="status-lang">HTML</div>
-                    <div class="status-item">PawIDE v2.0</div>
+                    <div class="status-item">PawIDE v3.0</div>
                 </div>
             </footer>
         </main>
