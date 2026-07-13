@@ -5,43 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1e1e1e">
     <meta name="description" content="PawIDE - Futuristic Web Workspace">
-    <title>Paw IDE - Futuristic Workspace</title>
+    <title>Paw IDE - Web Workspace</title>
     
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     
-    <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Monaco Editor Script (AMD loader) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 </head>
 <body>
 
-    <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             <h1>PAW IDE</h1>
         </div>
         <div class="splash-loader"></div>
         <div class="splash-text">Initializing Workspace...</div>
     </div>
 
-    <!-- Notification Container -->
     <div id="notification-container"></div>
 
-    <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="modal-header">
@@ -98,7 +86,6 @@
         </div>
     </div>
 
-    <!-- Command Palette Modal -->
     <div id="command-palette" class="hidden">
         <div class="cmd-box">
             <div class="cmd-input-wrapper">
@@ -108,6 +95,7 @@
             <div class="cmd-list">
                 <div class="cmd-item" data-action="run">Run Project <span class="cmd-shortcut">Ctrl+Enter</span></div>
                 <div class="cmd-item" data-action="save">Save Workspace <span class="cmd-shortcut">Ctrl+S</span></div>
+                <div class="cmd-item" data-action="download">Download Files</div>
                 <div class="cmd-item" data-action="share">Share via Link</div>
                 <div class="cmd-item" data-action="settings">Open Settings</div>
                 <div class="cmd-item" data-action="theme">Toggle Theme</div>
@@ -116,17 +104,11 @@
         </div>
     </div>
 
-    <!-- Main App Wrapper -->
     <div class="app-wrapper">
-        
-        <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="sidebar-top">
                 <button class="sidebar-btn active" title="Explorer" data-panel="explorer">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                </button>
-                <button class="sidebar-btn" title="AI Assistant" data-panel="ai">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2z"></path><path d="M19 14v4h-2v-4h2zM5 14v4H3v-4h2z"></path><path d="M8 10h8v8H8v-8z"></path></svg>
                 </button>
             </div>
             <div class="sidebar-bottom">
@@ -139,61 +121,30 @@
             </div>
         </nav>
 
-        <!-- Secondary Panel (Explorer / AI) -->
         <aside class="panel-explorer">
             <div class="panel-header">
                 <span id="panel-title">EXPLORER</span>
-                <div class="traffic-lights">
-                    <span></span><span></span><span></span>
-                </div>
+                <div class="traffic-lights"><span></span><span></span><span></span></div>
             </div>
-            
             <div id="explorer-view" class="panel-content active">
                 <div class="folder-name">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                     PROJECT_PAW
                 </div>
                 <ul class="file-list">
-                    <li class="file-item active" data-file="html">
-                        <svg class="file-icon html-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                        index.html
-                    </li>
-                    <li class="file-item" data-file="css">
-                        <svg class="file-icon css-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                        style.css
-                    </li>
-                    <li class="file-item" data-file="js">
-                        <svg class="file-icon js-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                        script.js
-                    </li>
+                    <li class="file-item active" data-file="html"><svg class="file-icon html-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> index.html</li>
+                    <li class="file-item" data-file="css"><svg class="file-icon css-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> style.css</li>
+                    <li class="file-item" data-file="js"><svg class="file-icon js-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> script.js</li>
                 </ul>
-            </div>
-
-            <div id="ai-view" class="panel-content hidden">
-                <div class="ai-chat">
-                    <div class="ai-msg bot">Hello! I'm your Paw Assistant. Need help refactoring or generating code?</div>
-                </div>
-                <div class="ai-input">
-                    <input type="text" placeholder="Ask AI...">
-                    <button>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    </button>
-                </div>
             </div>
         </aside>
 
         <div class="drag-resizer" id="resizer-1"></div>
 
-        <!-- Main Workspace Area -->
         <main class="workspace">
-            
-            <!-- Topbar -->
             <header class="topbar">
                 <div class="topbar-left">
-                    <span class="branding-logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        Paw IDE
-                    </span>
+                    <span class="branding-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Paw IDE</span>
                     <div class="typing-indicator hidden" id="typing-indicator">Saving...</div>
                 </div>
                 
@@ -206,89 +157,58 @@
                 </div>
 
                 <div class="topbar-right">
-                    <button class="btn btn-secondary" id="btn-share" title="Share via Link">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                        Share
+                    <button class="btn btn-secondary" id="btn-toggle-preview" title="Toggle Code / Preview View">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
-                    <button class="btn btn-secondary" id="btn-export" title="Export Project">
+                    <button class="btn btn-secondary" id="btn-download" title="Download Code Files">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
                     <button class="btn btn-primary" id="btn-run">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        Run
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run
                     </button>
                 </div>
             </header>
 
-            <div class="split-view">
-                <!-- Editor Section -->
+            <div class="split-view" id="main-split-view">
                 <div class="editor-section">
                     <div class="editor-tabs">
-                        <div class="tab active" data-file="html">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#e34f26" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                            index.html
-                        </div>
-                        <div class="tab" data-file="css">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#1572B6" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path></svg>
-                            style.css
-                        </div>
-                        <div class="tab" data-file="js">
-                            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#F7DF1E" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            script.js
-                        </div>
+                        <div class="tab active" data-file="html"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#e34f26" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> index.html</div>
+                        <div class="tab" data-file="css"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#1572B6" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path></svg> style.css</div>
+                        <div class="tab" data-file="js"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="#F7DF1E" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> script.js</div>
                     </div>
-                    <div class="editor-container" id="monaco-container">
-                        <!-- Monaco Injected Here -->
-                    </div>
+                    <div class="editor-container" id="monaco-container"></div>
                 </div>
 
-                <div class="drag-resizer horizontal" id="resizer-2"></div>
+                <div class="drag-resizer core-resizer" id="resizer-2"></div>
 
-                <!-- Preview & Console Section -->
                 <div class="preview-section">
                     <div class="preview-tabs">
                         <div class="tab active" data-view="preview">Preview</div>
                         <div class="tab" data-view="console">Console <span id="console-badge" class="badge hidden">0</span></div>
                     </div>
-                    
                     <div class="preview-wrapper device-desktop" id="preview-wrapper">
                         <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>
-                        
                         <div id="console-wrapper" class="hidden">
-                            <div class="console-output" id="console-output">
-                                <div class="console-log system-log">Paw IDE Console initialized. Press Ctrl+Enter to re-run.</div>
-                            </div>
-                            <div class="console-input">
-                                <span>&gt;</span>
-                                <input type="text" placeholder="Evaluate JavaScript..." disabled>
-                            </div>
+                            <div class="console-output" id="console-output"><div class="console-log system-log">Console initialized.</div></div>
+                            <div class="console-input"><span>&gt;</span><input type="text" disabled></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Statusbar -->
             <footer class="statusbar">
                 <div class="status-left">
-                    <div class="status-item" id="status-error">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        0 Errors
-                    </div>
-                    <div class="status-item" id="status-warn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        0 Warnings
-                    </div>
+                    <div class="status-item" id="status-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> 0 Errors</div>
+                    <div class="status-item" id="status-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> 0 Warnings</div>
                 </div>
                 <div class="status-right">
                     <div class="status-item" id="status-line">Ln 1, Col 1</div>
-                    <div class="status-item">UTF-8</div>
                     <div class="status-item" id="status-lang">HTML</div>
-                    <div class="status-item">Paw IDE v1.1</div>
+                    <div class="status-item">Paw IDE v1.2</div>
                 </div>
             </footer>
         </main>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
