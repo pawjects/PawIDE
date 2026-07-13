@@ -1,52 +1,55 @@
-// --- 1. PWA Registration & Install Trigger ---
+// ==========================================
+// PWA Core: Service Worker & Installation
+// ==========================================
 let deferredPrompt;
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', async () => {
+const initPWA = async () => {
+    if ('serviceWorker' in navigator) {
         try {
             const reg = await navigator.serviceWorker.register('./sw.js');
-            console.log('Service Worker Registered Successfully:', reg.scope);
+            console.log('PawIDE PWA: Service Worker Registered', reg.scope);
         } catch (err) {
-            console.error('Service Worker Registration Failed:', err);
+            console.error('PawIDE PWA: Service Worker Registration Failed', err);
+        }
+    }
+
+    // Capture the native install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        const installBtn = document.getElementById('btn-install');
+        if (installBtn) {
+            installBtn.classList.remove('hidden');
+            
+            // Handle Install Click
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                installBtn.classList.add('hidden');
+                
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User installation choice: ${outcome}`);
+                
+                deferredPrompt = null;
+            }, { once: true });
         }
     });
-}
+};
 
-// Hook into the browser's install lifecycle
-window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent the default mini-infobar from appearing
-    e.preventDefault();
-    // Stash the event for later
-    deferredPrompt = e;
-    
-    const installBtn = document.getElementById('btn-install');
-    if (installBtn) {
-        installBtn.classList.remove('hidden'); // Reveal the button to the user
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            // Hide our button
-            installBtn.classList.add('hidden');
-            // Trigger the native prompt
-            deferredPrompt.prompt();
-            // Wait for user interaction
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
-            deferredPrompt = null;
-        });
-    }
-});
-
-// --- 2. Core Application Logic ---
+// ==========================================
+// Application UI & Logic Initialization
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    initPWA(); // Fire PWA logic
+
     const splashScreen = document.getElementById('splash-screen');
     const monacoContainer = document.getElementById('monaco-container');
     const previewFrame = document.getElementById('preview-frame');
-    const consoleWrapper = document.getElementById('console-wrapper');
     const consoleOutput = document.getElementById('console-output');
     const typingIndicator = document.getElementById('typing-indicator');
     const notificationContainer = document.getElementById('notification-container');
     
-    // UI Modals
     const settingsModal = document.getElementById('settings-modal');
     const commandPalette = document.getElementById('command-palette');
     const cmdInput = document.getElementById('cmd-input');
@@ -60,33 +63,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let files = JSON.parse(localStorage.getItem('paw-ide-data')) || { ...defaultCode };
     let currentFile = 'html';
     let editorInstance = null;
-    let models = {};
     let saveTimeout = null;
-    let errorCount = 0;
-    let warnCount = 0;
+    let errorCount = 0, warnCount = 0;
     
-    // User Settings
     let settings = JSON.parse(localStorage.getItem('paw-settings')) || { fontSize: 14, wordWrap: false, minimap: true, autoRun: true };
     const sFontSize = document.getElementById('setting-fontsize');
     const sWordWrap = document.getElementById('setting-wordwrap');
     const sMinimap = document.getElementById('setting-minimap');
     const sAutoRun = document.getElementById('setting-autorun');
 
-    function showNotification(message) {
+    const showNotification = (message) => {
         const notif = document.createElement('div');
         notif.className = 'notification';
         notif.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${message}`;
         notificationContainer.appendChild(notif);
         requestAnimationFrame(() => notif.classList.add('show'));
         setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 2500);
-    }
+    };
 
+    // Monaco Editor AMD Initialization
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-    require(['vs/editor/editor.main'], function() {
-        models.html = monaco.editor.createModel(files.html, "html");
-        models.css = monaco.editor.createModel(files.css, "css");
-        models.js = monaco.editor.createModel(files.js, "javascript");
-
+    require(['vs/editor/editor.main'], () => {
         monaco.editor.defineTheme('pawAmoled', {
             base: 'vs-dark', inherit: true,
             rules: [{ background: '000000' }],
@@ -94,24 +91,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 'editor.background': '#000000',
                 'editor.lineHighlightBackground': '#111111',
                 'editorLineNumber.foreground': '#555555',
-                'editorIndentGuide.background': '#222222',
-                'editorWidget.background': '#111111',
-                'editorWidget.border': '#2a2a2a'
+                'editorIndentGuide.background': '#222222'
             }
         });
 
-        const themeStr = document.documentElement.getAttribute('data-theme');
-
         editorInstance = monaco.editor.create(monacoContainer, {
-            model: models[currentFile],
-            theme: themeStr === 'dark' ? 'pawAmoled' : 'vs',
+            value: files[currentFile],
+            language: currentFile === 'js' ? 'javascript' : currentFile,
+            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'pawAmoled' : 'vs',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: settings.fontSize,
             wordWrap: settings.wordWrap ? "on" : "off",
             minimap: { enabled: settings.minimap },
             automaticLayout: true,
             padding: { top: 20, bottom: 20 },
-            scrollBeyondLastLine: false,
             roundedSelection: true,
             cursorBlinking: "smooth"
         });
@@ -122,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
                 localStorage.setItem('paw-ide-data', JSON.stringify(files));
-                if(settings.autoRun) updatePreview(false);
+                if(settings.autoRun) updatePreview();
                 typingIndicator.classList.add('hidden');
             }, 800);
             updateStatusBar();
@@ -139,14 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             splashScreen.style.opacity = '0';
             setTimeout(() => splashScreen.style.display = 'none', 400);
-            updatePreview(true); 
+            updatePreview(); 
             applySettingsUI();
         }, 1200);
     });
 
-    function updatePreview(manual = false) {
-        if (manual) showNotification("Compiling...");
-        
+    const updatePreview = () => {
         errorCount = 0; warnCount = 0;
         document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> 0 Errors`;
         document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> 0 Warnings`;
@@ -172,13 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
         combinedSource = combinedSource.replace('<head>', '<head>' + consoleCaptureScript);
 
         previewFrame.srcdoc = combinedSource;
-    }
+    };
 
     window.addEventListener('message', (e) => {
         if(e.data && e.data.source === 'paw-preview') appendConsole(e.data.type, e.data.message);
     });
 
-    function appendConsole(type, msg) {
+    const appendConsole = (type, msg) => {
         const div = document.createElement('div');
         div.className = `console-log log-${type}`;
         div.style.color = type === 'error' ? 'var(--error)' : type === 'warn' ? 'var(--warn)' : 'var(--text-main)';
@@ -197,26 +188,26 @@ document.addEventListener('DOMContentLoaded', () => {
             warnCount++;
             document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
         }
-    }
+    };
 
-    function updateStatusBar() {
+    const updateStatusBar = () => {
         if(!editorInstance) return;
         const pos = editorInstance.getPosition();
         if(pos) document.getElementById('status-line').textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
-    }
+    };
 
-    // --- Button Actions ---
-    document.getElementById('btn-run').addEventListener('click', () => updatePreview(true));
+    // --- User Actions ---
+    document.getElementById('btn-run').addEventListener('click', () => { showNotification("Compiling..."); updatePreview(); });
     
     document.getElementById('btn-download').addEventListener('click', () => {
         const download = (filename, text) => {
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-            element.setAttribute('download', filename);
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
+            const el = document.createElement('a');
+            el.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            el.setAttribute('download', filename);
+            el.style.display = 'none';
+            document.body.appendChild(el);
+            el.click();
+            document.body.removeChild(el);
         };
         download('index.html', files.html);
         setTimeout(() => download('style.css', files.css), 200);
@@ -244,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editorInstance) setTimeout(() => editorInstance.layout(), 150);
     });
 
-    // Theme Toggle
     document.getElementById('theme-toggle').addEventListener('click', () => {
         const root = document.documentElement;
         const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -254,30 +244,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // File Tabs
-    function switchTab(fileType) {
-        if (!editorInstance) return;
-        currentFile = fileType;
-        editorInstance.setModel(models[fileType]);
-        document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.editor-tabs .tab[data-file="${fileType}"]`).classList.add('active');
-        document.querySelector(`.file-item[data-file="${fileType}"]`).classList.add('active');
-        document.getElementById('status-lang').textContent = { html: 'HTML', css: 'CSS', js: 'JavaScript' }[fileType];
-        updateStatusBar();
-    }
-    document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => el.addEventListener('click', () => switchTab(el.dataset.file)));
+    document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => {
+        el.addEventListener('click', () => {
+            if (!editorInstance) return;
+            currentFile = el.dataset.file;
+            const lang = currentFile === 'js' ? 'javascript' : currentFile;
+            monaco.editor.setModelLanguage(editorInstance.getModel(), lang);
+            editorInstance.setValue(files[currentFile]);
+            
+            document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.editor-tabs .tab[data-file="${currentFile}"]`).classList.add('active');
+            document.querySelector(`.file-item[data-file="${currentFile}"]`).classList.add('active');
+            document.getElementById('status-lang').textContent = { html: 'HTML', css: 'CSS', js: 'JavaScript' }[currentFile];
+            updateStatusBar();
+        });
+    });
 
-    // Sidebar Explorer
+    // Sidebar & Explorer
     const explorerBtn = document.querySelector('.sidebar-btn[data-panel="explorer"]');
     const panelExplorer = document.querySelector('.panel-explorer');
     explorerBtn.addEventListener('click', () => {
         const isHidden = window.getComputedStyle(panelExplorer).display === 'none';
-        if (isHidden) {
-            panelExplorer.style.display = 'flex';
-            explorerBtn.classList.add('active');
-        } else {
-            panelExplorer.style.display = 'none';
-            explorerBtn.classList.remove('active');
-        }
+        panelExplorer.style.display = isHidden ? 'flex' : 'none';
+        explorerBtn.classList.toggle('active', isHidden);
         if (editorInstance) setTimeout(() => editorInstance.layout(), 150);
     });
 
@@ -285,16 +274,18 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.preview-tabs .tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
+            const cw = document.getElementById('console-wrapper');
             if(tab.dataset.view === 'preview') {
-                previewFrame.classList.remove('hidden'); consoleWrapper.classList.add('hidden');
+                previewFrame.classList.remove('hidden'); cw.classList.add('hidden');
             } else {
-                previewFrame.classList.add('hidden'); consoleWrapper.classList.remove('hidden');
-                document.getElementById('console-badge').classList.add('hidden'); document.getElementById('console-badge').textContent = '0';
+                previewFrame.classList.add('hidden'); cw.classList.remove('hidden');
+                document.getElementById('console-badge').classList.add('hidden'); 
+                document.getElementById('console-badge').textContent = '0';
             }
         });
     });
 
-    // --- Command Palette ---
+    // Command Palette
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
@@ -302,8 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!commandPalette.classList.contains('hidden')) { cmdInput.focus(); cmdInput.value = ''; filterCommands(''); }
         }
         if (e.key === 'Escape') {
-            if(!commandPalette.classList.contains('hidden')) commandPalette.classList.add('hidden');
-            if(!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
+            commandPalette.classList.add('hidden');
+            settingsModal.classList.add('hidden');
             if(editorInstance) editorInstance.focus();
         }
     });
@@ -311,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdItems = document.querySelectorAll('.cmd-item');
     cmdInput.addEventListener('input', (e) => filterCommands(e.target.value.toLowerCase()));
     function filterCommands(query) {
-        cmdItems.forEach(item => { item.style.display = item.textContent.toLowerCase().includes(query) ? 'flex' : 'none'; });
+        cmdItems.forEach(item => item.style.display = item.textContent.toLowerCase().includes(query) ? 'flex' : 'none');
     }
 
     cmdItems.forEach(item => {
@@ -324,8 +315,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'settings': settingsModal.classList.remove('hidden'); break;
                 case 'theme': document.getElementById('theme-toggle').click(); break;
                 case 'clear': 
-                    files = { ...defaultCode }; models.html.setValue(files.html); models.css.setValue(files.css); models.js.setValue(files.js); 
-                    localStorage.setItem('paw-ide-data', JSON.stringify(files)); updatePreview(true); showNotification("Workspace Reset"); break;
+                    files = { ...defaultCode }; 
+                    editorInstance.setValue(files[currentFile]); 
+                    localStorage.setItem('paw-ide-data', JSON.stringify(files)); 
+                    updatePreview(); 
+                    showNotification("Workspace Reset"); 
+                    break;
             }
             if(editorInstance) editorInstance.focus();
         });
@@ -335,20 +330,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === commandPalette) commandPalette.classList.add('hidden');
     });
 
-    // --- Settings Modal ---
+    // Settings Modal
     function applySettingsUI() { 
-        sFontSize.value = settings.fontSize; 
-        sWordWrap.checked = settings.wordWrap; 
-        sMinimap.checked = settings.minimap;
-        sAutoRun.checked = settings.autoRun; 
+        sFontSize.value = settings.fontSize; sWordWrap.checked = settings.wordWrap; 
+        sMinimap.checked = settings.minimap; sAutoRun.checked = settings.autoRun; 
     }
     
     document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
     document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
-    
-    settingsModal.addEventListener('click', (e) => {
-        if (e.target === settingsModal) settingsModal.classList.add('hidden');
-    });
+    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
 
     [sFontSize, sWordWrap, sMinimap, sAutoRun].forEach(el => el.addEventListener('change', () => {
         settings = { fontSize: parseInt(sFontSize.value), wordWrap: sWordWrap.checked, minimap: sMinimap.checked, autoRun: sAutoRun.checked };
@@ -358,20 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }));
 
-    // --- Layout Resizers ---
+    // Resizers
     const resizer1 = document.getElementById('resizer-1');
-    let isResizing1 = false;
-    resizer1.addEventListener('mousedown', () => { isResizing1 = true; resizer1.classList.add('dragging'); });
-    
     const resizer2 = document.getElementById('resizer-2');
     const editorSec = document.querySelector('.editor-section');
-    let isResizing2 = false;
+    let isResizing1 = false, isResizing2 = false;
+
+    resizer1.addEventListener('mousedown', () => { isResizing1 = true; resizer1.classList.add('dragging'); });
     resizer2.addEventListener('mousedown', () => { isResizing2 = true; resizer2.classList.add('dragging'); });
     resizer2.addEventListener('touchstart', () => { isResizing2 = true; resizer2.classList.add('dragging'); }, {passive: true});
 
     const stopResize = () => { 
-        if(isResizing1) { isResizing1 = false; resizer1.classList.remove('dragging'); }
-        if(isResizing2) { isResizing2 = false; resizer2.classList.remove('dragging'); }
+        isResizing1 = isResizing2 = false; 
+        resizer1.classList.remove('dragging'); resizer2.classList.remove('dragging');
         if(editorInstance) editorInstance.layout(); 
     };
     document.addEventListener('mouseup', stopResize);
@@ -386,14 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const isPortrait = window.innerWidth <= 900 && window.innerHeight > window.innerWidth;
             if (isPortrait) {
                 const topOffset = document.querySelector('.topbar').offsetHeight;
-                let percentage = ((clientY - topOffset) / (window.innerHeight - topOffset)) * 100;
-                if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
+                let pct = ((clientY - topOffset) / (window.innerHeight - topOffset)) * 100;
+                if(pct > 10 && pct < 90) editorSec.style.flexBasis = `${pct}%`;
             } else {
                 const sidebarW = document.querySelector('.sidebar').offsetWidth;
                 const expW = window.getComputedStyle(panelExplorer).display === 'none' ? 0 : panelExplorer.offsetWidth;
                 const offset = sidebarW + expW;
-                let percentage = ((clientX - offset) / (window.innerWidth - offset)) * 100;
-                if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
+                let pct = ((clientX - offset) / (window.innerWidth - offset)) * 100;
+                if(pct > 10 && pct < 90) editorSec.style.flexBasis = `${pct}%`;
             }
         }
     };
