@@ -1,28 +1,42 @@
-// --- PWA Installation & Service Worker Logic ---
+// --- 1. PWA Registration & Install Trigger ---
 let deferredPrompt;
 
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Registration Failed', err));
+    window.addEventListener('load', async () => {
+        try {
+            const reg = await navigator.serviceWorker.register('./sw.js');
+            console.log('Service Worker Registered Successfully:', reg.scope);
+        } catch (err) {
+            console.error('Service Worker Registration Failed:', err);
+        }
     });
 }
 
+// Hook into the browser's install lifecycle
 window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default mini-infobar from appearing
     e.preventDefault();
+    // Stash the event for later
     deferredPrompt = e;
+    
     const installBtn = document.getElementById('btn-install');
-    if(installBtn) {
-        installBtn.classList.remove('hidden');
+    if (installBtn) {
+        installBtn.classList.remove('hidden'); // Reveal the button to the user
         installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            // Hide our button
             installBtn.classList.add('hidden');
+            // Trigger the native prompt
             deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
+            // Wait for user interaction
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
             deferredPrompt = null;
         });
     }
 });
 
-// --- Core Application Logic ---
+// --- 2. Core Application Logic ---
 document.addEventListener('DOMContentLoaded', () => {
     const splashScreen = document.getElementById('splash-screen');
     const monacoContainer = document.getElementById('monaco-container');
@@ -32,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingIndicator = document.getElementById('typing-indicator');
     const notificationContainer = document.getElementById('notification-container');
     
-    // Modals
+    // UI Modals
     const settingsModal = document.getElementById('settings-modal');
     const commandPalette = document.getElementById('command-palette');
     const cmdInput = document.getElementById('cmd-input');
@@ -51,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let errorCount = 0;
     let warnCount = 0;
     
+    // User Settings
     let settings = JSON.parse(localStorage.getItem('paw-settings')) || { fontSize: 14, wordWrap: false, minimap: true, autoRun: true };
     const sFontSize = document.getElementById('setting-fontsize');
     const sWordWrap = document.getElementById('setting-wordwrap');
@@ -190,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(pos) document.getElementById('status-line').textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
     }
 
-    // --- Actions ---
+    // --- Button Actions ---
     document.getElementById('btn-run').addEventListener('click', () => updatePreview(true));
     
     document.getElementById('btn-download').addEventListener('click', () => {
@@ -238,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode`);
     });
 
-    // File Tabs & Explorer
+    // File Tabs
     function switchTab(fileType) {
         if (!editorInstance) return;
         currentFile = fileType;
@@ -251,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => el.addEventListener('click', () => switchTab(el.dataset.file)));
 
-    // Sidebar panel toggling (Explorer)
+    // Sidebar Explorer
     const explorerBtn = document.querySelector('.sidebar-btn[data-panel="explorer"]');
     const panelExplorer = document.querySelector('.panel-explorer');
     explorerBtn.addEventListener('click', () => {
@@ -316,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Command palette click outside to close
     commandPalette.addEventListener('click', (e) => {
         if (e.target === commandPalette) commandPalette.classList.add('hidden');
     });
@@ -344,13 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }));
 
-    // --- Resizers ---
-    // Resizer 1 (Explorer)
+    // --- Layout Resizers ---
     const resizer1 = document.getElementById('resizer-1');
     let isResizing1 = false;
     resizer1.addEventListener('mousedown', () => { isResizing1 = true; resizer1.classList.add('dragging'); });
     
-    // Resizer 2 (Split View)
     const resizer2 = document.getElementById('resizer-2');
     const editorSec = document.querySelector('.editor-section');
     let isResizing2 = false;
