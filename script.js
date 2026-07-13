@@ -13,7 +13,6 @@ const initPWA = async () => {
         }
     }
 
-    // Capture the native install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -21,16 +20,12 @@ const initPWA = async () => {
         const installBtn = document.getElementById('btn-install');
         if (installBtn) {
             installBtn.classList.remove('hidden');
-            
-            // Handle Install Click
             installBtn.addEventListener('click', async () => {
                 if (!deferredPrompt) return;
                 installBtn.classList.add('hidden');
-                
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 console.log(`User installation choice: ${outcome}`);
-                
                 deferredPrompt = null;
             }, { once: true });
         }
@@ -41,7 +36,7 @@ const initPWA = async () => {
 // Application UI & Logic Initialization
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    initPWA(); // Fire PWA logic
+    initPWA(); 
 
     const splashScreen = document.getElementById('splash-screen');
     const monacoContainer = document.getElementById('monaco-container');
@@ -75,13 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const showNotification = (message) => {
         const notif = document.createElement('div');
         notif.className = 'notification';
-        notif.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${message}`;
+        notif.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
         notificationContainer.appendChild(notif);
         requestAnimationFrame(() => notif.classList.add('show'));
         setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 2500);
     };
 
-    // Monaco Editor AMD Initialization
+    // Monaco Editor Initialization
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
     require(['vs/editor/editor.main'], () => {
         monaco.editor.defineTheme('pawAmoled', {
@@ -139,8 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updatePreview = () => {
         errorCount = 0; warnCount = 0;
-        document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> 0 Errors`;
-        document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> 0 Warnings`;
+        document.getElementById('status-error').innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 0 Errors`;
+        document.getElementById('status-warn').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 0 Warnings`;
 
         const consoleCaptureScript = `<script>
             (function() {
@@ -183,10 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(type === 'error') {
             errorCount++;
-            document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> <span style="color:var(--error)">${errorCount} Errors</span>`;
+            document.getElementById('status-error').innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <span style="color:var(--error)">${errorCount} Errors</span>`;
         } else if (type === 'warn') {
             warnCount++;
-            document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
+            document.getElementById('status-warn').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
         }
     };
 
@@ -260,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Sidebar & Explorer
+    // Sidebar Explorer
     const explorerBtn = document.querySelector('.sidebar-btn[data-panel="explorer"]');
     const panelExplorer = document.querySelector('.panel-explorer');
     explorerBtn.addEventListener('click', () => {
