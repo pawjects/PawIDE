@@ -1,9 +1,32 @@
+// --- PWA Installation & Service Worker Logic ---
+let deferredPrompt;
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PawIDE SW Registered', reg.scope))
+            .catch(err => console.error('SW Registration Failed', err));
     });
 }
 
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show the install button if PWA criteria is met
+    const installBtn = document.getElementById('btn-install');
+    if(installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.addEventListener('click', async () => {
+            installBtn.classList.add('hidden');
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+        });
+    }
+});
+
+// --- Core Application Logic ---
 document.addEventListener('DOMContentLoaded', () => {
     const splashScreen = document.getElementById('splash-screen');
     const monacoContainer = document.getElementById('monaco-container');
@@ -12,14 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const consoleOutput = document.getElementById('console-output');
     const typingIndicator = document.getElementById('typing-indicator');
     const notificationContainer = document.getElementById('notification-container');
-    const commandPalette = document.getElementById('command-palette');
-    const cmdInput = document.getElementById('cmd-input');
     const settingsModal = document.getElementById('settings-modal');
+    const settingsBox = document.getElementById('settings-box');
     
     const defaultCode = {
-        html: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Paw IDE App</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="container">\n    <h1>Welcome to Paw IDE 🚀</h1>\n    <p>Edit HTML, CSS, and JS to see live updates.</p>\n    <button id="clickMe">Click Me</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
-        css: `body {\n  font-family: 'Inter', sans-serif;\n  background: #1e1e1e;\n  color: #cccccc;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.container {\n  text-align: center;\n  background: rgba(255,255,255,0.05);\n  padding: 2rem;\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n}\n\nh1 { color: #007acc; }\n\nbutton {\n  background: #007acc;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: bold;\n  transition: 0.2s;\n}\nbutton:hover { background: #0098ff; }`,
-        js: `document.getElementById('clickMe').addEventListener('click', () => {\n  console.log('Button clicked!');\n  alert('Hello from Paw IDE!');\n});`
+        html: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>PawIDE Project</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="card">\n    <h1>PawIDE Workspace</h1>\n    <p>Build the future, line by line.</p>\n    <button id="actionBtn">Initialize</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
+        css: `body {\n  font-family: system-ui, sans-serif;\n  background: #000000;\n  color: #e2e2e2;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.card {\n  text-align: center;\n  background: #111111;\n  padding: 2.5rem;\n  border-radius: 16px;\n  border: 1px solid #2a2a2a;\n  box-shadow: 0 20px 40px rgba(0,0,0,0.5);\n}\n\nh1 { color: #00d4ff; margin-top: 0; }\n\nbutton {\n  background: rgba(0, 212, 255, 0.1);\n  color: #00d4ff;\n  border: 1px solid #00d4ff;\n  padding: 10px 24px;\n  border-radius: 20px;\n  cursor: pointer;\n  font-weight: 600;\n  transition: 0.2s;\n}\nbutton:hover {\n  background: #00d4ff;\n  color: #000;\n}`,
+        js: `document.getElementById('actionBtn').addEventListener('click', function() {\n  console.log('PawIDE Initialized Successfully!');\n  this.textContent = 'System Active';\n  this.style.background = '#00e676';\n  this.style.color = '#000';\n  this.style.borderColor = '#00e676';\n});`
     };
 
     let files = JSON.parse(localStorage.getItem('paw-ide-data')) || { ...defaultCode };
@@ -27,49 +49,56 @@ document.addEventListener('DOMContentLoaded', () => {
     let editorInstance = null;
     let models = {};
     let saveTimeout = null;
-    let errorCount = 0;
-    let warnCount = 0;
     
-    let settings = JSON.parse(localStorage.getItem('paw-settings')) || { fontSize: 14, wordWrap: false, minimap: true, autoRun: true };
+    // Load Settings
+    let settings = JSON.parse(localStorage.getItem('paw-settings')) || { fontSize: 14, wordWrap: false, autoRun: true };
+    const sFontSize = document.getElementById('setting-fontsize');
+    const sWordWrap = document.getElementById('setting-wordwrap');
+    const sAutoRun = document.getElementById('setting-autorun');
 
     function showNotification(message) {
         const notif = document.createElement('div');
         notif.className = 'notification';
-        notif.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${message}`;
+        notif.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${message}`;
         notificationContainer.appendChild(notif);
         requestAnimationFrame(() => notif.classList.add('show'));
-        setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 3000);
+        setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 2500);
     }
 
+    // Monaco AMD Loader Config
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         models.html = monaco.editor.createModel(files.html, "html");
         models.css = monaco.editor.createModel(files.css, "css");
         models.js = monaco.editor.createModel(files.js, "javascript");
 
-        monaco.editor.defineTheme('pawDark', {
+        // AMOLED Material Theme
+        monaco.editor.defineTheme('pawAmoled', {
             base: 'vs-dark', inherit: true,
-            rules: [{ background: '1e1e1e' }],
+            rules: [{ background: '000000' }],
             colors: {
-                'editor.background': '#1e1e1e',
-                'editor.lineHighlightBackground': '#2a2d2e',
-                'editorLineNumber.foreground': '#858585',
-                'editorIndentGuide.background': '#404040'
+                'editor.background': '#000000',
+                'editor.lineHighlightBackground': '#111111',
+                'editorLineNumber.foreground': '#555555',
+                'editorIndentGuide.background': '#222222',
+                'editorWidget.background': '#111111',
+                'editorWidget.border': '#2a2a2a'
             }
         });
 
         editorInstance = monaco.editor.create(monacoContainer, {
             model: models[currentFile],
-            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'pawDark' : 'vs',
+            theme: 'pawAmoled',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: settings.fontSize,
             wordWrap: settings.wordWrap ? "on" : "off",
-            minimap: { enabled: settings.minimap },
+            minimap: { enabled: false }, // Disabled for mobile performance
             automaticLayout: true,
-            padding: { top: 15 },
+            padding: { top: 20, bottom: 20 },
             scrollBeyondLastLine: false,
             roundedSelection: true,
-            formatOnPaste: true
+            smoothScrolling: true,
+            cursorBlinking: "smooth"
         });
 
         editorInstance.onDidChangeModelContent(() => {
@@ -80,37 +109,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('paw-ide-data', JSON.stringify(files));
                 if(settings.autoRun) updatePreview(false);
                 typingIndicator.classList.add('hidden');
-            }, 1000);
-            updateStatusBar();
+            }, 800);
         });
-        
-        editorInstance.onDidChangeCursorPosition(updateStatusBar);
 
         editorInstance.addAction({
-            id: 'save-code', label: 'Save Code',
+            id: 'save-code', label: 'Save Workspace',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-            run: () => { localStorage.setItem('paw-ide-data', JSON.stringify(files)); showNotification("Workspace saved"); }
-        });
-        
-        editorInstance.addAction({
-            id: 'run-code', label: 'Run Code',
-            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-            run: () => updatePreview(true)
+            run: () => { localStorage.setItem('paw-ide-data', JSON.stringify(files)); showNotification("Saved to Device"); }
         });
 
+        // Hide Splash Screen
         setTimeout(() => {
             splashScreen.style.opacity = '0';
-            setTimeout(() => splashScreen.style.display = 'none', 500);
-            updatePreview(true); applySettingsUI();
-        }, 1000);
+            setTimeout(() => splashScreen.style.display = 'none', 400);
+            updatePreview(true); 
+            applySettingsUI();
+        }, 1200);
     });
 
+    // Preview Engine
     function updatePreview(manual = false) {
-        if (manual) showNotification("Running Project...");
-        errorCount = 0; warnCount = 0;
-        document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> 0 Errors`;
-        document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> 0 Warnings`;
-
+        if (manual) showNotification("Compiling...");
+        
         const consoleCaptureScript = `<script>
             (function() {
                 const sendMsg = (type, args) => {
@@ -134,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewFrame.srcdoc = combinedSource;
     }
 
+    // Console Message Listener
     window.addEventListener('message', (e) => {
         if(e.data && e.data.source === 'paw-preview') appendConsole(e.data.type, e.data.message);
     });
@@ -141,24 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendConsole(type, msg) {
         const div = document.createElement('div');
         div.className = `console-log log-${type}`;
+        div.style.color = type === 'error' ? 'var(--error)' : type === 'warn' ? 'var(--warn)' : 'var(--text-main)';
         div.textContent = `> ${msg}`;
         consoleOutput.appendChild(div);
         consoleOutput.scrollTop = consoleOutput.scrollHeight;
-
-        const badge = document.getElementById('console-badge');
-        badge.textContent = parseInt(badge.textContent) + 1;
-        badge.classList.remove('hidden');
-
-        if(type === 'error') {
-            errorCount++;
-            document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> <span style="color:var(--error)">${errorCount} Errors</span>`;
-        } else if (type === 'warn') {
-            warnCount++;
-            document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
-        }
     }
 
-    // --- Buttons & Core Logic ---
+    // Topbar Actions
     document.getElementById('btn-run').addEventListener('click', () => updatePreview(true));
     
     document.getElementById('btn-download').addEventListener('click', () => {
@@ -171,14 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
             element.click();
             document.body.removeChild(element);
         };
-        // Browser might ask to allow multiple downloads
         download('index.html', files.html);
-        setTimeout(() => download('style.css', files.css), 300);
-        setTimeout(() => download('script.js', files.js), 600);
-        showNotification("Source files downloading...");
+        setTimeout(() => download('style.css', files.css), 200);
+        setTimeout(() => download('script.js', files.js), 400);
+        showNotification("Source Exported");
     });
 
-    // Toggle Preview Logic
     let previewVisible = true;
     document.getElementById('btn-toggle-preview').addEventListener('click', () => {
         previewVisible = !previewVisible;
@@ -196,22 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
             editorSection.classList.remove('maximized');
             editorSection.style.flexBasis = '50%';
         }
-        if (editorInstance) setTimeout(() => editorInstance.layout(), 100);
+        if (editorInstance) setTimeout(() => editorInstance.layout(), 150);
     });
 
-    // Tabs & Basic UI
-    function switchTab(fileType) {
+    // Editor Tab Switching
+    document.querySelectorAll('.editor-tabs .tab').forEach(el => el.addEventListener('click', () => {
         if (!editorInstance) return;
-        currentFile = fileType;
-        editorInstance.setModel(models[fileType]);
-        document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.editor-tabs .tab[data-file="${fileType}"]`).classList.add('active');
-        document.querySelector(`.file-item[data-file="${fileType}"]`).classList.add('active');
-        document.getElementById('status-lang').textContent = { html: 'HTML', css: 'CSS', js: 'JavaScript' }[fileType];
-        updateStatusBar();
-    }
-    document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => el.addEventListener('click', () => switchTab(el.dataset.file)));
+        currentFile = el.dataset.file;
+        editorInstance.setModel(models[currentFile]);
+        document.querySelectorAll('.editor-tabs .tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }));
 
+    // Preview Tab Switching
     document.querySelectorAll('.preview-tabs .tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.preview-tabs .tab').forEach(t => t.classList.remove('active'));
@@ -220,69 +225,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewFrame.classList.remove('hidden'); consoleWrapper.classList.add('hidden');
             } else {
                 previewFrame.classList.add('hidden'); consoleWrapper.classList.remove('hidden');
-                document.getElementById('console-badge').classList.add('hidden'); document.getElementById('console-badge').textContent = '0';
             }
         });
     });
 
-    document.querySelectorAll('.device-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('preview-wrapper').className = `preview-wrapper device-${btn.dataset.device}`;
-        });
+    // Settings Modal Logic (Fixes Applied)
+    function applySettingsUI() { 
+        sFontSize.value = settings.fontSize; 
+        sWordWrap.checked = settings.wordWrap; 
+        sAutoRun.checked = settings.autoRun; 
+    }
+    
+    const openSettingsBtn = document.getElementById('btn-settings');
+    const closeSettingsBtn = document.getElementById('close-settings');
+
+    const openSettings = () => settingsModal.classList.remove('hidden');
+    const closeSettings = () => settingsModal.classList.add('hidden');
+
+    openSettingsBtn.addEventListener('click', openSettings);
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    
+    // Close modal if clicking outside the modal box
+    settingsModal.addEventListener('click', (e) => {
+        if (!settingsBox.contains(e.target)) {
+            closeSettings();
+        }
     });
 
-    // Smart Resizer Logic
-    const resizer2 = document.getElementById('resizer-2');
+    // Apply settings on change
+    [sFontSize, sWordWrap, sAutoRun].forEach(el => el.addEventListener('change', () => {
+        settings = { fontSize: parseInt(sFontSize.value), wordWrap: sWordWrap.checked, autoRun: sAutoRun.checked };
+        localStorage.setItem('paw-settings', JSON.stringify(settings));
+        if (editorInstance) {
+            editorInstance.updateOptions({ fontSize: settings.fontSize, wordWrap: settings.wordWrap ? "on" : "off" });
+        }
+    }));
+
+    // Smart Split View Resizing
+    const resizer = document.getElementById('resizer-2');
     const editorSec = document.querySelector('.editor-section');
-    let isResizing2 = false;
+    let isResizing = false;
 
-    resizer2.addEventListener('mousedown', () => { isResizing2 = true; resizer2.classList.add('dragging'); });
-    resizer2.addEventListener('touchstart', () => { isResizing2 = true; resizer2.classList.add('dragging'); }, {passive: true});
+    const startResize = () => { isResizing = true; resizer.classList.add('dragging'); };
+    const stopResize = () => { if(isResizing) { isResizing = false; resizer.classList.remove('dragging'); if(editorInstance) editorInstance.layout(); } };
 
-    const finishResize = () => { if(isResizing2) { isResizing2 = false; resizer2.classList.remove('dragging'); if(editorInstance) editorInstance.layout(); } };
-    document.addEventListener('mouseup', finishResize);
-    document.addEventListener('touchend', finishResize);
+    resizer.addEventListener('mousedown', startResize);
+    resizer.addEventListener('touchstart', startResize, {passive: true});
+    document.addEventListener('mouseup', stopResize);
+    document.addEventListener('touchend', stopResize);
 
-    document.addEventListener('mousemove', (e) => handleDrag(e.clientX, e.clientY));
-    document.addEventListener('touchmove', (e) => { if(isResizing2) handleDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
-
-    function handleDrag(clientX, clientY) {
-        if (!isResizing2) return;
+    const handleDrag = (clientX, clientY) => {
+        if (!isResizing) return;
         const isPortrait = window.innerWidth <= 900 && window.innerHeight > window.innerWidth;
         
         if (isPortrait) {
-            // Dragging vertically
-            const topOffset = document.querySelector('.topbar').offsetHeight + (window.innerWidth <= 900 ? 50 : 0);
+            const topOffset = document.querySelector('.topbar').offsetHeight;
             let percentage = ((clientY - topOffset) / (window.innerHeight - topOffset)) * 100;
             if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
         } else {
-            // Dragging horizontally
             const sidebarW = document.querySelector('.sidebar').offsetWidth;
-            const expW = document.querySelector('.panel-explorer').offsetWidth;
-            const isExpHidden = window.getComputedStyle(document.querySelector('.panel-explorer')).display === 'none';
-            const offset = sidebarW + (isExpHidden ? 0 : expW);
-            let percentage = ((clientX - offset) / (window.innerWidth - offset)) * 100;
+            let percentage = ((clientX - sidebarW) / (window.innerWidth - sidebarW)) * 100;
             if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
         }
-    }
+    };
 
-    function updateStatusBar() {
-        if(!editorInstance) return;
-        const pos = editorInstance.getPosition();
-        if(pos) document.getElementById('status-line').textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
-    }
-
-    // Settings
-    function applySettingsUI() { sFontSize.value = settings.fontSize; sWordWrap.checked = settings.wordWrap; sMinimap.checked = settings.minimap; sAutoRun.checked = settings.autoRun; }
-    document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
-    document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
-    [sFontSize, sWordWrap, sMinimap, sAutoRun].forEach(el => el.addEventListener('change', () => {
-        settings = { fontSize: parseInt(sFontSize.value), wordWrap: sWordWrap.checked, minimap: sMinimap.checked, autoRun: sAutoRun.checked };
-        localStorage.setItem('paw-settings', JSON.stringify(settings));
-        if (editorInstance) editorInstance.updateOptions({ fontSize: settings.fontSize, wordWrap: settings.wordWrap ? "on" : "off", minimap: { enabled: settings.minimap } });
-    }));
-    
-    window.addEventListener('resize', () => { if(editorInstance) setTimeout(() => editorInstance.layout(), 100); });
+    document.addEventListener('mousemove', (e) => handleDrag(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => { if(isResizing) handleDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
+    window.addEventListener('resize', () => { if(editorInstance) setTimeout(() => editorInstance.layout(), 150); });
 });
