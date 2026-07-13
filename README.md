@@ -36,3 +36,17 @@ PawIDE is a static application. No complex build tools or Node.js backends are r
 1. **Clone the repository:**
    ```bash
    git clone [https://github.com/pawjects/PawIDE.git](https://github.com/pawjects/PawIDE.git)
+   ```
+2. **Launch:** Open `index.html` in your favorite modern browser. 
+*(Note: To test the Service Worker/PWA installation locally, you must serve the files via a local HTTP server, like VS Code Live Server or Python's `http.server`).*
+
+## 📱 Mobile Workspace
+To ensure a smooth mobile coding experience, PawIDE shifts into a stacked layout on smaller screens. Tap the layout toggles in the top bar to switch between Editor and Preview modes seamlessly.
+
+## 🤝 Contributing
+Contributions are always welcome! Feel free to open an issue or submit a Pull Request.
+
+---
+<div align="center">
+  Crafted with 🐾 by <strong>pawjects</strong>
+</div>
