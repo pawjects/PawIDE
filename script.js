@@ -3,9 +3,7 @@ let deferredPrompt;
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('PawIDE SW Registered', reg.scope))
-            .catch(err => console.error('SW Registration Failed', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Registration Failed', err));
     });
 }
 
@@ -18,8 +16,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
         installBtn.addEventListener('click', async () => {
             installBtn.classList.add('hidden');
             deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to install prompt: ${outcome}`);
+            await deferredPrompt.userChoice;
             deferredPrompt = null;
         });
     }
