@@ -1,16 +1,10 @@
-// --- 1. PWA Service Worker Registration ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            console.log('PawIDE Service Worker registered.', reg);
-        }).catch(err => {
-            console.log('Service Worker registration failed:', err);
-        });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Elements ---
     const splashScreen = document.getElementById('splash-screen');
     const monacoContainer = document.getElementById('monaco-container');
     const previewFrame = document.getElementById('preview-frame');
@@ -22,20 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const cmdInput = document.getElementById('cmd-input');
     const settingsModal = document.getElementById('settings-modal');
     
-    // Settings Elements
-    const sFontSize = document.getElementById('setting-fontsize');
-    const sWordWrap = document.getElementById('setting-wordwrap');
-    const sMinimap = document.getElementById('setting-minimap');
-    const sAutoRun = document.getElementById('setting-autorun');
-    
-    // --- State & Config ---
     const defaultCode = {
         html: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Paw IDE App</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="container">\n    <h1>Welcome to Paw IDE 🚀</h1>\n    <p>Edit HTML, CSS, and JS to see live updates.</p>\n    <button id="clickMe">Click Me</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
-        css: `body {\n  font-family: 'Inter', sans-serif;\n  background: #1e1e1e;\n  color: #cccccc;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.container {\n  text-align: center;\n  background: rgba(255,255,255,0.05);\n  padding: 2rem;\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n  box-shadow: 0 10px 30px rgba(0,122,204,0.1);\n}\n\nh1 {\n  color: #007acc;\n}\n\nbutton {\n  background: #007acc;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: bold;\n  transition: 0.2s;\n}\n\nbutton:hover {\n  background: #0098ff;\n}`,
+        css: `body {\n  font-family: 'Inter', sans-serif;\n  background: #1e1e1e;\n  color: #cccccc;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\n.container {\n  text-align: center;\n  background: rgba(255,255,255,0.05);\n  padding: 2rem;\n  border-radius: 12px;\n  border: 1px solid rgba(255,255,255,0.1);\n}\n\nh1 { color: #007acc; }\n\nbutton {\n  background: #007acc;\n  color: white;\n  border: none;\n  padding: 10px 20px;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: bold;\n  transition: 0.2s;\n}\nbutton:hover { background: #0098ff; }`,
         js: `document.getElementById('clickMe').addEventListener('click', () => {\n  console.log('Button clicked!');\n  alert('Hello from Paw IDE!');\n});`
     };
 
-    let files = { ...defaultCode };
+    let files = JSON.parse(localStorage.getItem('paw-ide-data')) || { ...defaultCode };
     let currentFile = 'html';
     let editorInstance = null;
     let models = {};
@@ -43,61 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let errorCount = 0;
     let warnCount = 0;
     
-    let settings = JSON.parse(localStorage.getItem('paw-settings')) || {
-        fontSize: 14,
-        wordWrap: false,
-        minimap: true,
-        autoRun: true
-    };
+    let settings = JSON.parse(localStorage.getItem('paw-settings')) || { fontSize: 14, wordWrap: false, minimap: true, autoRun: true };
 
-    // --- Load Shared Code from URL ---
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('share')) {
-        try {
-            const decoded = JSON.parse(decodeURIComponent(atob(urlParams.get('share'))));
-            files = { ...defaultCode, ...decoded };
-            window.history.replaceState({}, document.title, window.location.pathname);
-            showNotification("Shared project loaded");
-        } catch (e) {
-            console.error("Failed to parse shared code", e);
-            files = JSON.parse(localStorage.getItem('paw-ide-data')) || { ...defaultCode };
-        }
-    } else {
-        files = JSON.parse(localStorage.getItem('paw-ide-data')) || { ...defaultCode };
-    }
-
-    // --- Notifications ---
     function showNotification(message) {
         const notif = document.createElement('div');
         notif.className = 'notification';
-        notif.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" width="16" height="16">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            ${message}
-        `;
+        notif.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${message}`;
         notificationContainer.appendChild(notif);
-        
         requestAnimationFrame(() => notif.classList.add('show'));
-        setTimeout(() => {
-            notif.classList.remove('show');
-            setTimeout(() => notif.remove(), 300);
-        }, 3000);
+        setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 3000);
     }
 
-    // --- Monaco Editor Setup (VS Code Theme Fix) ---
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         models.html = monaco.editor.createModel(files.html, "html");
         models.css = monaco.editor.createModel(files.css, "css");
         models.js = monaco.editor.createModel(files.js, "javascript");
 
-        const themeStr = document.documentElement.getAttribute('data-theme');
-        
-        // Exact VS Code Dark Theme Match
         monaco.editor.defineTheme('pawDark', {
-            base: 'vs-dark',
-            inherit: true,
+            base: 'vs-dark', inherit: true,
             rules: [{ background: '1e1e1e' }],
             colors: {
                 'editor.background': '#1e1e1e',
@@ -109,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         editorInstance = monaco.editor.create(monacoContainer, {
             model: models[currentFile],
-            theme: themeStr === 'dark' ? 'pawDark' : 'vs',
+            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'pawDark' : 'vs',
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: settings.fontSize,
             wordWrap: settings.wordWrap ? "on" : "off",
@@ -118,8 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: { top: 15 },
             scrollBeyondLastLine: false,
             roundedSelection: true,
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: true,
             formatOnPaste: true
         });
 
@@ -152,36 +101,29 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             splashScreen.style.opacity = '0';
             setTimeout(() => splashScreen.style.display = 'none', 500);
-            updatePreview(true);
-            applySettingsUI();
-        }, 1200);
+            updatePreview(true); applySettingsUI();
+        }, 1000);
     });
 
-    // --- Preview & Console ---
     function updatePreview(manual = false) {
         if (manual) showNotification("Running Project...");
-        
         errorCount = 0; warnCount = 0;
         document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> 0 Errors`;
         document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> 0 Warnings`;
 
-        const consoleCaptureScript = `
-            <script>
-                (function() {
-                    const sendMsg = (type, args) => {
-                        const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-                        window.parent.postMessage({ source: 'paw-preview', type, message: msg }, '*');
-                    };
-                    const originalLog = console.log;
-                    const originalErr = console.error;
-                    const originalWarn = console.warn;
-                    console.log = function(...args) { sendMsg('log', args); originalLog.apply(console, args); };
-                    console.error = function(...args) { sendMsg('error', args); originalErr.apply(console, args); };
-                    console.warn = function(...args) { sendMsg('warn', args); originalWarn.apply(console, args); };
-                    window.onerror = function(msg, url, line) { sendMsg('error', [msg + ' (Line: ' + line + ')']); return false; };
-                })();
-            <\/script>
-        `;
+        const consoleCaptureScript = `<script>
+            (function() {
+                const sendMsg = (type, args) => {
+                    const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+                    window.parent.postMessage({ source: 'paw-preview', type, message: msg }, '*');
+                };
+                const oLog = console.log, oErr = console.error, oWarn = console.warn;
+                console.log = function(...args) { sendMsg('log', args); oLog.apply(console, args); };
+                console.error = function(...args) { sendMsg('error', args); oErr.apply(console, args); };
+                console.warn = function(...args) { sendMsg('warn', args); oWarn.apply(console, args); };
+                window.onerror = function(msg, url, line) { sendMsg('error', [msg + ' (Line: ' + line + ')']); return false; };
+            })();
+        <\/script>`;
 
         let combinedSource = files.html.replace('</head>', `<style>${files.css}</style></head>`);
         const scriptTagRegex = /<script\s+src=["']script\.js["']><\/script>/i;
@@ -209,70 +151,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(type === 'error') {
             errorCount++;
-            document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> <span style="color:var(--error)">${errorCount} Errors</span>`;
+            document.getElementById('status-error').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> <span style="color:var(--error)">${errorCount} Errors</span>`;
         } else if (type === 'warn') {
             warnCount++;
-            document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
+            document.getElementById('status-warn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg> <span style="color:var(--warn)">${warnCount} Warnings</span>`;
         }
     }
 
-    // --- Core Features (Buttons) ---
+    // --- Buttons & Core Logic ---
     document.getElementById('btn-run').addEventListener('click', () => updatePreview(true));
     
-    document.getElementById('btn-export').addEventListener('click', () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(files, null, 2));
-        const a = document.createElement('a');
-        a.href = dataStr; a.download = "paw_project.json";
-        document.body.appendChild(a); a.click(); a.remove();
-        showNotification("Project Exported");
-    });
-
-    document.getElementById('btn-share').addEventListener('click', () => {
-        const encodedData = btoa(encodeURIComponent(JSON.stringify(files)));
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodedData}`;
-        
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            showNotification("Share Link Copied to Clipboard!");
-        }).catch(() => {
-            showNotification("Failed to copy link.");
-        });
-    });
-
-    // --- Settings Menu System ---
-    function applySettingsUI() {
-        sFontSize.value = settings.fontSize;
-        sWordWrap.checked = settings.wordWrap;
-        sMinimap.checked = settings.minimap;
-        sAutoRun.checked = settings.autoRun;
-    }
-
-    function saveAndApplySettings() {
-        settings = {
-            fontSize: parseInt(sFontSize.value),
-            wordWrap: sWordWrap.checked,
-            minimap: sMinimap.checked,
-            autoRun: sAutoRun.checked
+    document.getElementById('btn-download').addEventListener('click', () => {
+        const download = (filename, text) => {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
         };
-        localStorage.setItem('paw-settings', JSON.stringify(settings));
-        
-        if (editorInstance) {
-            editorInstance.updateOptions({
-                fontSize: settings.fontSize,
-                wordWrap: settings.wordWrap ? "on" : "off",
-                minimap: { enabled: settings.minimap }
-            });
-        }
-        showNotification("Settings Applied");
-    }
-
-    document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
-    document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
-    
-    [sFontSize, sWordWrap, sMinimap, sAutoRun].forEach(el => {
-        el.addEventListener('change', saveAndApplySettings);
+        // Browser might ask to allow multiple downloads
+        download('index.html', files.html);
+        setTimeout(() => download('style.css', files.css), 300);
+        setTimeout(() => download('script.js', files.js), 600);
+        showNotification("Source files downloading...");
     });
 
-    // --- Basic UI Operations ---
+    // Toggle Preview Logic
+    let previewVisible = true;
+    document.getElementById('btn-toggle-preview').addEventListener('click', () => {
+        previewVisible = !previewVisible;
+        const previewSection = document.querySelector('.preview-section');
+        const editorSection = document.querySelector('.editor-section');
+        const coreResizer = document.querySelector('.core-resizer');
+        
+        if (!previewVisible) {
+            previewSection.classList.add('hidden');
+            coreResizer.classList.add('hidden');
+            editorSection.classList.add('maximized');
+        } else {
+            previewSection.classList.remove('hidden');
+            coreResizer.classList.remove('hidden');
+            editorSection.classList.remove('maximized');
+            editorSection.style.flexBasis = '50%';
+        }
+        if (editorInstance) setTimeout(() => editorInstance.layout(), 100);
+    });
+
+    // Tabs & Basic UI
     function switchTab(fileType) {
         if (!editorInstance) return;
         currentFile = fileType;
@@ -280,14 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(t => t.classList.remove('active'));
         document.querySelector(`.editor-tabs .tab[data-file="${fileType}"]`).classList.add('active');
         document.querySelector(`.file-item[data-file="${fileType}"]`).classList.add('active');
-        const langMap = { html: 'HTML', css: 'CSS', js: 'JavaScript' };
-        document.getElementById('status-lang').textContent = langMap[fileType];
+        document.getElementById('status-lang').textContent = { html: 'HTML', css: 'CSS', js: 'JavaScript' }[fileType];
         updateStatusBar();
     }
-
-    document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => {
-        el.addEventListener('click', () => switchTab(el.dataset.file));
-    });
+    document.querySelectorAll('.editor-tabs .tab, .file-item').forEach(el => el.addEventListener('click', () => switchTab(el.dataset.file)));
 
     document.querySelectorAll('.preview-tabs .tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -297,8 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewFrame.classList.remove('hidden'); consoleWrapper.classList.add('hidden');
             } else {
                 previewFrame.classList.add('hidden'); consoleWrapper.classList.remove('hidden');
-                document.getElementById('console-badge').classList.add('hidden');
-                document.getElementById('console-badge').textContent = '0';
+                document.getElementById('console-badge').classList.add('hidden'); document.getElementById('console-badge').textContent = '0';
             }
         });
     });
@@ -311,13 +233,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-        const root = document.documentElement;
-        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        root.setAttribute('data-theme', next);
-        if (editorInstance) monaco.editor.setTheme(next === 'dark' ? 'pawDark' : 'vs');
-        showNotification(`${next.charAt(0).toUpperCase() + next.slice(1)} Mode Enabled`);
-    });
+    // Smart Resizer Logic
+    const resizer2 = document.getElementById('resizer-2');
+    const editorSec = document.querySelector('.editor-section');
+    let isResizing2 = false;
+
+    resizer2.addEventListener('mousedown', () => { isResizing2 = true; resizer2.classList.add('dragging'); });
+    resizer2.addEventListener('touchstart', () => { isResizing2 = true; resizer2.classList.add('dragging'); }, {passive: true});
+
+    const finishResize = () => { if(isResizing2) { isResizing2 = false; resizer2.classList.remove('dragging'); if(editorInstance) editorInstance.layout(); } };
+    document.addEventListener('mouseup', finishResize);
+    document.addEventListener('touchend', finishResize);
+
+    document.addEventListener('mousemove', (e) => handleDrag(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => { if(isResizing2) handleDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
+
+    function handleDrag(clientX, clientY) {
+        if (!isResizing2) return;
+        const isPortrait = window.innerWidth <= 900 && window.innerHeight > window.innerWidth;
+        
+        if (isPortrait) {
+            // Dragging vertically
+            const topOffset = document.querySelector('.topbar').offsetHeight + (window.innerWidth <= 900 ? 50 : 0);
+            let percentage = ((clientY - topOffset) / (window.innerHeight - topOffset)) * 100;
+            if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
+        } else {
+            // Dragging horizontally
+            const sidebarW = document.querySelector('.sidebar').offsetWidth;
+            const expW = document.querySelector('.panel-explorer').offsetWidth;
+            const isExpHidden = window.getComputedStyle(document.querySelector('.panel-explorer')).display === 'none';
+            const offset = sidebarW + (isExpHidden ? 0 : expW);
+            let percentage = ((clientX - offset) / (window.innerWidth - offset)) * 100;
+            if(percentage > 10 && percentage < 90) editorSec.style.flexBasis = `${percentage}%`;
+        }
+    }
 
     function updateStatusBar() {
         if(!editorInstance) return;
@@ -325,55 +274,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(pos) document.getElementById('status-line').textContent = `Ln ${pos.lineNumber}, Col ${pos.column}`;
     }
 
-    // Command Palette Logic
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            commandPalette.classList.toggle('hidden');
-            if(!commandPalette.classList.contains('hidden')) { cmdInput.focus(); cmdInput.value = ''; filterCommands(''); }
-        }
-        if (e.key === 'Escape') {
-            if(!commandPalette.classList.contains('hidden')) commandPalette.classList.add('hidden');
-            if(!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
-            if(editorInstance) editorInstance.focus();
-        }
-    });
-
-    const cmdItems = document.querySelectorAll('.cmd-item');
-    cmdInput.addEventListener('input', (e) => filterCommands(e.target.value.toLowerCase()));
-    function filterCommands(query) {
-        cmdItems.forEach(item => { item.style.display = item.textContent.toLowerCase().includes(query) ? 'flex' : 'none'; });
-    }
-
-    cmdItems.forEach(item => {
-        item.addEventListener('click', () => {
-            commandPalette.classList.add('hidden');
-            switch(item.dataset.action) {
-                case 'run': updatePreview(true); break;
-                case 'save': localStorage.setItem('paw-ide-data', JSON.stringify(files)); showNotification("Workspace saved"); break;
-                case 'share': document.getElementById('btn-share').click(); break;
-                case 'settings': settingsModal.classList.remove('hidden'); break;
-                case 'theme': document.getElementById('theme-toggle').click(); break;
-                case 'clear': 
-                    files = { ...defaultCode }; models.html.setValue(files.html); models.css.setValue(files.css); models.js.setValue(files.js); 
-                    localStorage.setItem('paw-ide-data', JSON.stringify(files)); updatePreview(true); showNotification("Workspace Reset"); break;
-            }
-            if(editorInstance) editorInstance.focus();
-        });
-    });
+    // Settings
+    function applySettingsUI() { sFontSize.value = settings.fontSize; sWordWrap.checked = settings.wordWrap; sMinimap.checked = settings.minimap; sAutoRun.checked = settings.autoRun; }
+    document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    document.getElementById('close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
+    [sFontSize, sWordWrap, sMinimap, sAutoRun].forEach(el => el.addEventListener('change', () => {
+        settings = { fontSize: parseInt(sFontSize.value), wordWrap: sWordWrap.checked, minimap: sMinimap.checked, autoRun: sAutoRun.checked };
+        localStorage.setItem('paw-settings', JSON.stringify(settings));
+        if (editorInstance) editorInstance.updateOptions({ fontSize: settings.fontSize, wordWrap: settings.wordWrap ? "on" : "off", minimap: { enabled: settings.minimap } });
+    }));
     
-    // Resizer Logic
-    const resizer1 = document.getElementById('resizer-1');
-    const panelExplorer = document.querySelector('.panel-explorer');
-    let isResizing1 = false;
-    resizer1.addEventListener('mousedown', () => { isResizing1 = true; document.body.style.cursor = 'col-resize'; resizer1.classList.add('dragging'); });
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing1) return;
-        let newWidth = e.clientX - 50; 
-        if(newWidth > 150 && newWidth < 400) { panelExplorer.style.width = `${newWidth}px`; if(editorInstance) editorInstance.layout(); }
-    });
-    document.addEventListener('mouseup', () => {
-        if(isResizing1) { isResizing1 = false; document.body.style.cursor = 'default'; resizer1.classList.remove('dragging'); if(editorInstance) editorInstance.layout(); }
-    });
     window.addEventListener('resize', () => { if(editorInstance) setTimeout(() => editorInstance.layout(), 100); });
 });
