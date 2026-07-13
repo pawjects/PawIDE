@@ -1,21 +1,21 @@
-const CACHE_NAME = 'pawide-pwa-v1';
+const CACHE_NAME = 'pawide-pwa-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './style.css',
     './script.js',
-    './manifest.json',
-    'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js'
+    './manifest.json'
 ];
 
+// Install Event: Cache core assets instantly
 self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(ASSETS_TO_CACHE))
-            .then(() => self.skipWaiting())
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
     );
 });
 
+// Activate Event: Clean up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -28,23 +28,21 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// Fetch Event: Network-first for Monaco, Cache-first for core app
 self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+    
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            // Return cached response if found
-            if (cachedResponse) return cachedResponse;
-            
-            // Otherwise, fetch from the network
-            return fetch(event.request).then((networkResponse) => {
-                // Cache Monaco Editor dynamic fetches on the fly
+            return cachedResponse || fetch(event.request).then((networkResponse) => {
+                // Dynamically cache Monaco Editor assets as they load
                 if (event.request.url.includes('monaco-editor') && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
                 }
                 return networkResponse;
             }).catch(() => {
-                // Fallback for offline mode (if applicable)
-                console.warn('Network request failed and no cache available for:', event.request.url);
+                console.warn('App is offline and asset is missing from cache:', event.request.url);
             });
         })
     );
