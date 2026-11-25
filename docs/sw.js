@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pawide-pwa-v4';
+const CACHE_NAME = 'pawide-pwa-v5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -7,7 +7,6 @@ const ASSETS_TO_CACHE = [
     './manifest.json'
 ];
 
-// Install Event: Cache core assets instantly
 self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
@@ -15,35 +14,31 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate Event: Clean up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
+        caches.keys().then((cacheNames) =>
+            Promise.all(
                 cacheNames.map((name) => {
                     if (name !== CACHE_NAME) return caches.delete(name);
                 })
-            );
-        }).then(() => self.clients.claim())
+            )
+        ).then(() => self.clients.claim())
     );
 });
 
-// Fetch Event: Network-first for Monaco, Cache-first for core app
+// Network-first for app shell so updates apply immediately; cache fallback offline
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
-    
+
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            return cachedResponse || fetch(event.request).then((networkResponse) => {
-                // Dynamically cache Monaco Editor assets as they load
-                if (event.request.url.includes('monaco-editor') && networkResponse.status === 200) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        fetch(event.request)
+            .then((networkResponse) => {
+                if (networkResponse && networkResponse.status === 200) {
+                    const clone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                 }
                 return networkResponse;
-            }).catch(() => {
-                console.warn('App is offline and asset is missing from cache:', event.request.url);
-            });
-        })
+            })
+            .catch(() => caches.match(event.request))
     );
 });
